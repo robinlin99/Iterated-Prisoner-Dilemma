@@ -3,6 +3,7 @@ import uuid
 import random
 import tree
 import matplotlib.pyplot as plt
+import sqlite3
 
 # Standard Prisoner's Dilemma Payoff Matrix
 def evaluation(moveA, moveB):
@@ -32,7 +33,7 @@ def generate_score(A, B, gene_length):
 
 '''
 class Simulation():
-    def __init__(self, pool_size, gene_length, totalrounds):
+    def __init__(self, pool_size, gene_length, totalrounds,predetermined):
         self.poolsize = pool_size
         self.genesize = gene_length
         self.totalgenetic = 0
@@ -56,32 +57,40 @@ class Simulation():
         strategy_hashmap['Prober'] = 'g'
         # Only these strategies will be included in the simulation
         implemented = ['Cu', 'Du', 'Random', 'Cp', 'TFT', 'TFTT', 'Prober']
+
+        # Set up sqlite3 database
+        conn = sqlite3.connect('players.db')
+        c = conn.cursor()
+        c.execute('''CREATE TABLE players
+             (strategy text, size real, bitstring text, id text, original text)''')
         # Initialization 
         # Populating the reverse look up dictionary
         for i in strategy_hashmap:  
             self.reverse_lookup[strategy_hashmap[i]] = i
-        # Adding new players to the simulation
-        for strategy in strategy_hashmap:
-            if strategy in implemented:
-                for _ in range(self.poolsize):
-                    new = p.Player(strategy, 
-                                   self.genesize, 
-                                   True, 
-                                   None, 
-                                   None)
-                    self.players.append(new)
-        # Creating tree object for each player
-        for player in self.players:
-            newnode = tree.TreeNode(player, player.id)
-            self.tree_hashmap[player] = newnode
-        # Populating initial genomic statistics
-        for i in implemented:
-            self.totalgenetic += self.poolsize * self.genesize
-            self.genetic_instance[strategy_hashmap[i]] = self.poolsize * self.genesize
-    
+        if predetermined:
+            # Adding new players to the simulation
+            for strategy in strategy_hashmap:
+                if strategy in implemented:
+                    for _ in range(self.poolsize):
+                        new = p.Player(strategy, 
+                                       self.genesize)
+                        self.players.append(new)
+                        # Add to database
+                        c.execute("INSERT INTO players VALUES ('{}', '{}', '{}', '{}', '{}')".format(strategy, self.genesize, new.strategy_bitstring, new.id, "True"))
+                        conn.commit()
+            # Creating tree object for each player
+            for player in self.players:
+                newnode = tree.TreeNode(player, player.id)
+                self.tree_hashmap[player] = newnode
+            # Populating initial genomic statistics
+            for i in implemented:
+                self.totalgenetic += self.poolsize * self.genesize
+                self.genetic_instance[strategy_hashmap[i]] = self.poolsize * self.genesize
+
 
     ''' 
     Simulation 1: 
+        Initial Population is Predetermined
         Parameters:
             - Fixed Reproduction Rate: reprod_rate
         Evolution Schema:
@@ -94,6 +103,9 @@ class Simulation():
     '''
 
     def sim_configuration_1(self,rp):
+        # Open database connection
+        conn = sqlite3.connect('players.db')
+        c = conn.cursor()
         reprod_rate = rp
         self.experimenttitle = "Configuration 1 - Strictly-Growth (SG), Fixed Growth Rate (FGR) - SGFGR"
         for round in range(self.totalrounds):
@@ -111,8 +123,8 @@ class Simulation():
                         self.genesize)
                     playerA = self.players[left]
                     playerB = self.players[right]
-                    print("Round: " + str(round))
-                    print(playerA.strategy_bitstring + " versus " + playerB.strategy_bitstring)
+                    # print("Round: " + str(round))
+                    # print(playerA.strategy_bitstring + " versus " + playerB.strategy_bitstring)
                     self.game_hashmap[playerA] += ARoundSum
                     self.game_hashmap[playerB] += BRoundSum
             self.game_hashmap = {k: v for k, v in sorted(
@@ -132,6 +144,10 @@ class Simulation():
                 print("Round: " + str(round))
                 print("Mates: " + A.strategy_bitstring + ", " + B.strategy_bitstring)
                 child1, child2 = A.crossover(B)
+                # Add to database
+                c.execute("INSERT INTO players VALUES ('{}', '{}', '{}', '{}', '{}')".format("N/A", child1.size, child1.strategy_bitstring, child1.id, "False"))
+                c.execute("INSERT INTO players VALUES ('{}', '{}', '{}', '{}', '{}')".format("N/A", child2.size, child2.strategy_bitstring, child2.id, "False"))
+                conn.commit()
                 for i in child1.strategy_bitstring:
                     self.genetic_instance[i] += 1
                     self.totalgenetic += 1
@@ -155,6 +171,7 @@ class Simulation():
             for i in self.game_hashmap:
                 print(i.strategy_bitstring,self.game_hashmap[i])
             self.print_players()
+        conn.close()
         self.plot_percentage_count()
 
     def print_players(self):
@@ -163,6 +180,8 @@ class Simulation():
     
     def traverse_players(self):
         for player in self.players:
+            print("New Traversal")
+            print("----------------")
             self.tree_hashmap[player].inorder()
     
     def process_percentage(self):

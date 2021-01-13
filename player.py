@@ -3,7 +3,7 @@ import uuid
 
 
 class Player():
-    def __init__(self, strategy, size, isPure, genes, parents):
+    def __init__(self, strategy, size, isPure = True, genes = None, parents = None):
         strategy_hashmap = {}
         strategy_hashmap['Cu'] = 'a'
         strategy_hashmap['Du'] = 'b'

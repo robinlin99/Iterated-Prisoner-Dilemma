@@ -1,2 +1,2 @@
-# Iterated_Prisoners_Dilemma
- Iterated Prisoner's Dilemma - Genetic Algorithm
+# Iterated_PD
+ Simulation for Iterated Prisoner's Dilemma using Genetic Algorithmic Approach

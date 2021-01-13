@@ -5,7 +5,7 @@ class TreeNode():
 		self.left = None
 		self.right = None
 	def read(self):
-		return self.data
+		return self.player
 	def get_children(self):
 		return self.left, self.right
 	def inorder(self):
