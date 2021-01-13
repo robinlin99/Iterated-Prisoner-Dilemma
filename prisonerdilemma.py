@@ -123,8 +123,8 @@ class Simulation():
                         self.genesize)
                     playerA = self.players[left]
                     playerB = self.players[right]
-                    # print("Round: " + str(round))
-                    # print(playerA.strategy_bitstring + " versus " + playerB.strategy_bitstring)
+                    print("Round: " + str(round))
+                    print(playerA.strategy_bitstring + " versus " + playerB.strategy_bitstring)
                     self.game_hashmap[playerA] += ARoundSum
                     self.game_hashmap[playerB] += BRoundSum
             self.game_hashmap = {k: v for k, v in sorted(

@@ -10,7 +10,7 @@ class TestGame(unittest.TestCase):
        os.system("rm players.db")
        sim = prisonerdilemma.Simulation(4,20,7,True)
        sim.sim_configuration_1(0.33)
-    # sim.print_players()
+       sim.print_players()
        sim.traverse_players()
        def database_print():
         # Create a SQL connection to our SQLite database
@@ -21,7 +21,7 @@ class TestGame(unittest.TestCase):
             print(row)
         # Be sure to close the connection
         con.close()
-    #    database_print()
+       database_print()
 
 
 if __name__ == '__main__':
