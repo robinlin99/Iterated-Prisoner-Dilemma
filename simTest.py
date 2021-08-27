@@ -13,13 +13,10 @@ class TestGame(unittest.TestCase):
         sim.traverse_players()
 
         def database_print():
-            # Create a SQL connection to our SQLite database
             con = sqlite3.connect("players.db")
             cur = con.cursor()
-            # The result of a "cursor.execute" can be iterated over by row
             for row in cur.execute('SELECT * FROM players;'):
                 print(row)
-            # Be sure to close the connection
             con.close()
         database_print()
 

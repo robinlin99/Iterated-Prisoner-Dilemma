@@ -5,8 +5,6 @@ import tree
 import matplotlib.pyplot as plt
 import sqlite3
 
-# Standard Prisoner's Dilemma Payoff Matrix
-
 
 def evaluation(moveA, moveB):
     if moveA == 'c' and moveB == 'c':
@@ -17,8 +15,6 @@ def evaluation(moveA, moveB):
         return 5, -1
     if moveA == "d" and moveB == "d":
         return 0, 0
-
-# Generate score for Agent A and B, respectively, for a single round of Iterated Prisoner's Dilemma of length gene_length
 
 
 def generate_score(A, B, gene_length):
@@ -31,12 +27,6 @@ def generate_score(A, B, gene_length):
         ASum += AScore
         BSum += BScore
     return ASum, BSum
-
-
-''' 
-Higher-level Simulation Class 
-
-'''
 
 
 class Simulation():
@@ -95,20 +85,6 @@ class Simulation():
                 self.totalgenetic += self.poolsize * self.genesize
                 self.genetic_instance[strategy_hashmap[i]
                                       ] = self.poolsize * self.genesize
-
-    ''' 
-    Simulation 1: 
-        Initial Population is Predetermined
-        Parameters:
-            - Fixed Reproduction Rate: reprod_rate
-        Evolution Schema:
-            - Play iterated dilemma game in a round-robin format (every player plays against every other player)
-            - Top reprod_rate fraction of total population mate in a random manner
-                - Each reproduction event produces two offsprings
-                - Reproduction uses 2-point crossover scheme
-            - Species death is not taken into account
-            - Overall simulation reflects a strictly-growth environment
-    '''
 
     def sim_configuration_1(self, rp):
         # Open database connection
