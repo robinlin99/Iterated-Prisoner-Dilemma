@@ -1,9 +1,10 @@
-import player as p
-import uuid
+#!/usr/bin/env python3
+
 import random
-import tree
 import matplotlib.pyplot as plt
 import sqlite3
+import player as p
+import tree
 
 
 def evaluation(moveA, moveB):

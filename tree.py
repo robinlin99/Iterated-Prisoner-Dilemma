@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 class TreeNode():
     def __init__(self, data, playerid):
         self.player = data
