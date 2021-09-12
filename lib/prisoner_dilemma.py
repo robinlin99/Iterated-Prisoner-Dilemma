@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+This module contains definitions of an Iterated Prisoner's Dilemma simulation.
+"""
 
 import random
 import matplotlib.pyplot as plt

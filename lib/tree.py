@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+This module contains the definition of a tree data structure.
+"""
+
 
 class TreeNode():
     def __init__(self, data, playerid):
