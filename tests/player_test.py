@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import unittest
-import player
+import lib.player as player
 
 
 class TestPlayer(unittest.TestCase):

@@ -2,7 +2,7 @@
 
 import os
 import sqlite3
-import prisonerdilemma
+from lib import prisoner_dilemma
 
 
 def print_database(filename: str) -> None:
@@ -15,7 +15,7 @@ def print_database(filename: str) -> None:
 
 def run_sim() -> None:
     os.system("rm players.db")
-    sim = prisonerdilemma.Simulation(4, 20, 7, True)
+    sim = prisoner_dilemma.Simulation(4, 20, 7, True)
     sim.sim_configuration_1(0.33)
     sim.print_players()
     sim.traverse_players()

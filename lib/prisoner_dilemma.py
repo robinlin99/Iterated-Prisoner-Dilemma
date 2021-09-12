@@ -3,8 +3,8 @@
 import random
 import matplotlib.pyplot as plt
 import sqlite3
-import player as p
-import tree
+import lib.player as p
+import lib.tree as tree
 
 
 def evaluation(moveA, moveB):

@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 
+"""
+This module contains definitions of an Iterated Prisoner's Dilemma Player.
+"""
+
 import random
 import uuid
 
