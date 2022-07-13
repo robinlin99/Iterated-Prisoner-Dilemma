@@ -1,6 +1,6 @@
 # Iterated_PD
 
-## About
+## Summary
 This project is a simulation for strategy evolution/optimization using a genetic algorithm for the Iterated Prisoner's Dilemma game. The Iterated Prisoner's Dilemma is the repeated version of the standard Prisoner's Dilemma, a famous 2-player symmetric game where each player has the option to "Defect" (D) and "Cooperate" (C). The game has the following payoff matrix:
 
 |                         | Player 2 Cooperates | Player 2 Defects |
@@ -16,3 +16,6 @@ There are 2 strict pure-strategy nash equilibria in this game: (Play C, Play C) 
 - Tit-for-Tat (TFT)
 - Tit-for-Two-Tats (TFTT)
 - Prober 
+
+The specifications of these strategies can be found at: https://plato.stanford.edu/entries/prisoner-dilemma/strategy-table.html.
+
