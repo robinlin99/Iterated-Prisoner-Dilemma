@@ -6,7 +6,7 @@ Shared constants for the Prisoner's Dilemma simulation.
 """
 
 # Maps strategy names to gene characters
-STRATEGY_MAP = {
+STRATEGY_MAP: dict[str, str] = {
     'Cu':     'a',
     'Du':     'b',
     'Random': 'c',
@@ -17,7 +17,7 @@ STRATEGY_MAP = {
 }
 
 # Reverse lookup: gene character -> strategy name
-REVERSE_MAP = {v: k for k, v in STRATEGY_MAP.items()}
+REVERSE_MAP: dict[str, str] = {v: k for k, v in STRATEGY_MAP.items()}
 
 # Strategies included in the simulation
-IMPLEMENTED = list(STRATEGY_MAP.keys())
+IMPLEMENTED: list[str] = list(STRATEGY_MAP.keys())

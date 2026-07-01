@@ -8,62 +8,62 @@ from lib.prisoner_dilemma import generate_score, evaluation
 
 class TestPlayer(unittest.TestCase):
     def setUp(self):
-        self.genesize = 20
-        self.A = player.Player('Cu', self.genesize)
-        self.B = player.Player('Du', self.genesize)
-        self.E = player.Player('TFT', self.genesize)
+        self.gene_size = 20
+        self.A = player.Player('Cu', self.gene_size)
+        self.B = player.Player('Du', self.gene_size)
+        self.E = player.Player('TFT', self.gene_size)
         # Opponent with known move history for TFT testing
-        self.F = player.Player('Cu', self.genesize)
-        self.F.movehistory = ['d'] * self.genesize
+        self.F = player.Player('Cu', self.gene_size)
+        self.F.move_history = ['d'] * self.gene_size
 
     def test_always_cooperate(self):
-        for i in range(self.genesize):
+        for i in range(self.gene_size):
             self.assertEqual(self.A.move(self.B, i), 'c')
 
     def test_always_defect(self):
-        b = player.Player('Du', self.genesize)
-        for i in range(self.genesize):
+        b = player.Player('Du', self.gene_size)
+        for i in range(self.gene_size):
             self.assertEqual(b.move(self.A, i), 'd')
 
     def test_tft_first_move_cooperates(self):
-        e = player.Player('TFT', self.genesize)
+        e = player.Player('TFT', self.gene_size)
         self.assertEqual(e.move(self.F, 0), 'c')
 
     def test_tft_copies_opponent(self):
-        e = player.Player('TFT', self.genesize)
+        e = player.Player('TFT', self.gene_size)
         e.move(self.F, 0)  # first move
-        for i in range(1, self.genesize):
+        for i in range(1, self.gene_size):
             result = e.move(self.F, i)
-            self.assertEqual(result, self.F.movehistory[i - 1])
+            self.assertEqual(result, self.F.move_history[i - 1])
 
     def test_tftt_cooperates_first_two(self):
-        f = player.Player('TFTT', self.genesize)
-        opp = player.Player('Du', self.genesize)
-        opp.movehistory = ['d'] * self.genesize
+        f = player.Player('TFTT', self.gene_size)
+        opp = player.Player('Du', self.gene_size)
+        opp.move_history = ['d'] * self.gene_size
         self.assertEqual(f.move(opp, 0), 'c')
         self.assertEqual(f.move(opp, 1), 'c')
 
     def test_tftt_defects_after_two_defections(self):
-        f = player.Player('TFTT', self.genesize)
-        opp = player.Player('Du', self.genesize)
-        opp.movehistory = ['d', 'd', 'd'] + ['d'] * (self.genesize - 3)
-        f.movehistory = ['c', 'c']  # simulate first two moves already done
+        f = player.Player('TFTT', self.gene_size)
+        opp = player.Player('Du', self.gene_size)
+        opp.move_history = ['d', 'd', 'd'] + ['d'] * (self.gene_size - 3)
+        f.move_history = ['c', 'c']  # simulate first two moves already done
         result = f.move(opp, 2)
         self.assertEqual(result, 'd')
 
     def test_prober_opens_d_c_c(self):
-        g = player.Player('Prober', self.genesize)
-        opp = player.Player('Cu', self.genesize)
-        opp.movehistory = ['c'] * self.genesize
+        g = player.Player('Prober', self.gene_size)
+        opp = player.Player('Cu', self.gene_size)
+        opp.move_history = ['c'] * self.gene_size
         self.assertEqual(g.move(opp, 0), 'd')
         self.assertEqual(g.move(opp, 1), 'c')
         self.assertEqual(g.move(opp, 2), 'c')
 
     def test_prober_exploits_passive_opponent(self):
         """Prober should defect from move 3 onward if opponent didn't retaliate."""
-        g = player.Player('Prober', self.genesize)
-        opp = player.Player('Cu', self.genesize)
-        opp.movehistory = ['c'] * self.genesize
+        g = player.Player('Prober', self.gene_size)
+        opp = player.Player('Cu', self.gene_size)
+        opp.move_history = ['c'] * self.gene_size
         g.move(opp, 0)
         g.move(opp, 1)
         g.move(opp, 2)
@@ -71,36 +71,35 @@ class TestPlayer(unittest.TestCase):
 
     def test_prober_tft_when_retaliated(self):
         """Prober falls back to TFT if opponent defected in moves 1 or 2."""
-        g = player.Player('Prober', self.genesize)
-        opp = player.Player('Du', self.genesize)
-        opp.movehistory = ['d', 'd', 'd'] + ['c'] * (self.genesize - 3)
+        g = player.Player('Prober', self.gene_size)
+        opp = player.Player('Du', self.gene_size)
+        opp.move_history = ['d', 'd', 'd'] + ['c'] * (self.gene_size - 3)
         g.move(opp, 0)
         g.move(opp, 1)
         g.move(opp, 2)
-        # opp.movehistory[1] == 'd', so Prober should TFT (copy prev move)
-        self.assertEqual(g.move(opp, 3), opp.movehistory[2])
+        self.assertEqual(g.move(opp, 3), opp.move_history[2])
 
-    def test_movehistory_appended_every_move(self):
-        """Every strategy should append to movehistory on every call."""
+    def test_move_history_appended_every_move(self):
+        """Every strategy should append to move_history on every call."""
         strategies = ['Cu', 'Du', 'Random', 'Cp', 'TFT', 'TFTT', 'Prober']
         n = 10
         for strat in strategies:
             pl = player.Player(strat, n)
             opp = player.Player('Cu', n)
-            opp.movehistory = ['c'] * n
+            opp.move_history = ['c'] * n
             for i in range(n):
                 pl.move(opp, i)
             self.assertEqual(
-                len(pl.movehistory), n,
-                f"{strat} movehistory length mismatch"
+                len(pl.move_history), n,
+                f"{strat} move_history length mismatch"
             )
 
     def test_crossover_produces_children(self):
-        a = player.Player('Cu', self.genesize)
-        b = player.Player('Du', self.genesize)
+        a = player.Player('Cu', self.gene_size)
+        b = player.Player('Du', self.gene_size)
         c1, c2 = a.crossover(b)
-        self.assertEqual(len(c1.strategy_bitstring), self.genesize)
-        self.assertEqual(len(c2.strategy_bitstring), self.genesize)
+        self.assertEqual(len(c1.strategy_bitstring), self.gene_size)
+        self.assertEqual(len(c2.strategy_bitstring), self.gene_size)
         self.assertIn(c1, a.children)
         self.assertIn(c1, b.children)
 

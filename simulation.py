@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os
-import sqlite3
-import logging
+"""
+Entry point for the Iterated Prisoner's Dilemma simulation.
 
+Initialises the simulation, runs it, and prints the resulting player
+database to stdout. The database file (players.db) is reset on each run.
+"""
+
+import argparse
+import os
+import logging
 from lib import prisoner_dilemma
 
 logging.basicConfig(
@@ -14,15 +20,12 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def print_database(filename: str) -> None:
-    conn = sqlite3.connect(filename)
-    cur = conn.cursor()
-    for row in cur.execute('SELECT * FROM players;'):
-        logger.info(row)
-    conn.close()
+def run_sim(plot: bool = False) -> None:
+    """Create and run a preconfigured simulation, then print a summary.
 
-
-def run_sim() -> None:
+    Args:
+        plot: If True, display an interactive matplotlib plot at the end.
+    """
     db_path = 'players.db'
     try:
         os.remove(db_path)
@@ -31,14 +34,15 @@ def run_sim() -> None:
 
     sim = prisoner_dilemma.Simulation(4, 20, 7, True)
     try:
-        sim.sim_configuration_1(0.33)
-        sim.print_players()
-        sim.traverse_players()
+        sim.sim_configuration_1(0.33, plot=plot)
     finally:
         sim.close()
 
-    print_database(db_path)
+    sim.print_summary()
 
 
 if __name__ == '__main__':
-    run_sim()
+    parser = argparse.ArgumentParser(description="Iterated Prisoner's Dilemma simulation")
+    parser.add_argument('--plot', action='store_true', help='Show interactive plot at the end')
+    args = parser.parse_args()
+    run_sim(plot=args.plot)
