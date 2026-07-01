@@ -3,24 +3,41 @@
 
 import os
 import sqlite3
+import logging
+
 from lib import prisoner_dilemma
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 
 def print_database(filename: str) -> None:
-    con = sqlite3.connect(filename)
-    cur = con.cursor()
+    conn = sqlite3.connect(filename)
+    cur = conn.cursor()
     for row in cur.execute('SELECT * FROM players;'):
-        print(row)
-    con.close()
+        logger.info(row)
+    conn.close()
 
 
 def run_sim() -> None:
-    os.system("rm players.db")
+    db_path = 'players.db'
+    try:
+        os.remove(db_path)
+    except FileNotFoundError:
+        pass
+
     sim = prisoner_dilemma.Simulation(4, 20, 7, True)
-    sim.sim_configuration_1(0.33)
-    sim.print_players()
-    sim.traverse_players()
-    print_database("players.db")
+    try:
+        sim.sim_configuration_1(0.33)
+        sim.print_players()
+        sim.traverse_players()
+    finally:
+        sim.close()
+
+    print_database(db_path)
 
 
 if __name__ == '__main__':

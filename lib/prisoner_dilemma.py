@@ -6,20 +6,26 @@ This module contains definitions of an Iterated Prisoner's Dilemma simulation.
 """
 
 import random
-import matplotlib.pyplot as plt
+import logging
 import sqlite3
+
+import matplotlib.pyplot as plt
+
 import lib.player as p
 import lib.tree as tree
+from lib.config import STRATEGY_MAP, REVERSE_MAP, IMPLEMENTED
+
+logger = logging.getLogger(__name__)
 
 
 def evaluation(moveA, moveB):
     if moveA == 'c' and moveB == 'c':
         return 3, 3
-    if moveA == "c" and moveB == "d":
+    if moveA == 'c' and moveB == 'd':
         return -1, 5
-    if moveA == "d" and moveB == "c":
+    if moveA == 'd' and moveB == 'c':
         return 5, -1
-    if moveA == "d" and moveB == "d":
+    if moveA == 'd' and moveB == 'd':
         return 0, 0
 
 
@@ -42,201 +48,164 @@ class Simulation():
         self.totalgenetic = 0
         self.totalrounds = totalrounds
         self.players = []
-        self.strategies = ['Cu', 'Du', 'Random', 'Cp', 'TFT', 'TFTT', 'Prober']
         self.game_hashmap = {}
         self.tree_hashmap = {}
         self.genetic_instance = {}
         self.experimenttitle = ""
         self.geneticpercentage = {}
         self.geneticcount = {}
-        self.reverse_lookup = {}
-        strategy_hashmap = {}
-        strategy_hashmap['Cu'] = 'a'
-        strategy_hashmap['Du'] = 'b'
-        strategy_hashmap['Random'] = 'c'
-        strategy_hashmap['Cp'] = 'd'
-        strategy_hashmap['TFT'] = 'e'
-        strategy_hashmap['TFTT'] = 'f'
-        strategy_hashmap['Prober'] = 'g'
-        # Only these strategies will be included in the simulation
-        implemented = ['Cu', 'Du', 'Random', 'Cp', 'TFT', 'TFTT', 'Prober']
 
-        # Set up sqlite3 database
-        conn = sqlite3.connect('players.db')
-        c = conn.cursor()
-        c.execute('''CREATE TABLE players
-             (strategy text, size real, bitstring text, id text, original text)''')
-        # Initialization
-        # Populating the reverse look up dictionary
-        for i in strategy_hashmap:
-            self.reverse_lookup[strategy_hashmap[i]] = i
+        self.conn = sqlite3.connect('players.db')
+        self._init_db()
+
         if predetermined:
-            # Adding new players to the simulation
-            for strategy in strategy_hashmap:
-                if strategy in implemented:
-                    for _ in range(self.poolsize):
-                        new = p.Player(strategy,
-                                       self.genesize)
-                        self.players.append(new)
-                        # Add to database
-                        c.execute("INSERT INTO players VALUES ('{}', '{}', '{}', '{}', '{}')".format(
-                            strategy, self.genesize, new.strategy_bitstring, new.id, "True"))
-                        conn.commit()
-            # Creating tree object for each player
-            for player in self.players:
-                newnode = tree.TreeNode(player, player.id)
-                self.tree_hashmap[player] = newnode
-            # Populating initial genomic statistics
-            for i in implemented:
-                self.totalgenetic += self.poolsize * self.genesize
-                self.genetic_instance[strategy_hashmap[i]
-                                      ] = self.poolsize * self.genesize
+            self._populate_players()
+
+    def _init_db(self):
+        c = self.conn.cursor()
+        c.execute('''CREATE TABLE IF NOT EXISTS players
+                     (strategy text, size real, bitstring text, id text, original text)''')
+        self.conn.commit()
+
+    def _populate_players(self):
+        c = self.conn.cursor()
+        for strategy in IMPLEMENTED:
+            gene_char = STRATEGY_MAP[strategy]
+            for _ in range(self.poolsize):
+                new = p.Player(strategy, self.genesize)
+                self.players.append(new)
+                c.execute(
+                    "INSERT INTO players VALUES (?, ?, ?, ?, ?)",
+                    (strategy, self.genesize, new.strategy_bitstring, new.id, "True")
+                )
+                self.totalgenetic += self.genesize
+                self.genetic_instance[gene_char] = \
+                    self.genetic_instance.get(gene_char, 0) + self.genesize
+        self.conn.commit()
+
+        for player in self.players:
+            self.tree_hashmap[player] = tree.TreeNode(player, player.id)
+
+    def close(self):
+        """Close the database connection."""
+        if self.conn:
+            self.conn.close()
+            self.conn = None
 
     def sim_configuration_1(self, rp):
-        # Open database connection
-        conn = sqlite3.connect('players.db')
-        c = conn.cursor()
+        self.experimenttitle = (
+            "Configuration 1 - Strictly-Growth (SG), "
+            "Fixed Growth Rate (FGR) - SGFGR"
+        )
+        c = self.conn.cursor()
         reprod_rate = rp
-        self.experimenttitle = "Configuration 1 - Strictly-Growth (SG), Fixed Growth Rate (FGR) - SGFGR"
-        for round in range(self.totalrounds):
-            self.process_count()
-            self.process_percentage()
-            # Reset game hashmap
-            self.game_hashmap = {}
-            for player in self.players:
-                self.game_hashmap[player] = 0
-            for left in range(0, len(self.players)-1):
-                for right in range(left+1, len(self.players)):
-                    ARoundSum, BRoundSum = generate_score(
-                        self.players[left],
-                        self.players[right],
-                        self.genesize)
+
+        for round_num in range(self.totalrounds):
+            self._process_count()
+            self._process_percentage()
+            self.game_hashmap = {player: 0 for player in self.players}
+
+            # Round-robin scoring
+            for left in range(len(self.players) - 1):
+                for right in range(left + 1, len(self.players)):
                     playerA = self.players[left]
                     playerB = self.players[right]
-                    print("Round: " + str(round))
-                    print(playerA.strategy_bitstring +
-                          " versus " + playerB.strategy_bitstring)
+                    # Reset move histories for a fresh game
+                    playerA.movehistory = []
+                    playerB.movehistory = []
+                    ARoundSum, BRoundSum = generate_score(playerA, playerB, self.genesize)
+                    logger.debug(
+                        "Round %d: %s vs %s -> %d, %d",
+                        round_num, playerA.strategy_bitstring,
+                        playerB.strategy_bitstring, ARoundSum, BRoundSum
+                    )
                     self.game_hashmap[playerA] += ARoundSum
                     self.game_hashmap[playerB] += BRoundSum
-            self.game_hashmap = {k: v for k, v in sorted(
-                self.game_hashmap.items(), key=lambda item: item[1], reverse=True)}
-            n_opp = int(reprod_rate * len(self.players))
-            matepool = []
-            for i, j in enumerate(list(self.game_hashmap.keys())):
-                if i > n_opp:
-                    break
-                else:
-                    matepool.append(j)
-            mate_times = len(matepool)
-            for _ in range(mate_times):
+
+            # Sort by score descending
+            self.game_hashmap = dict(sorted(
+                self.game_hashmap.items(), key=lambda item: item[1], reverse=True
+            ))
+
+            # Select top performers as mate pool
+            n_opp = max(2, int(reprod_rate * len(self.players)))
+            matepool = list(self.game_hashmap.keys())[:n_opp]
+
+            # Reproduce
+            for _ in range(len(matepool)):
                 mates = random.sample(matepool, 2)
-                A = mates[0]
-                B = mates[1]
-                print("Round: " + str(round))
-                print("Mates: " + A.strategy_bitstring +
-                      ", " + B.strategy_bitstring)
+                A, B = mates[0], mates[1]
+                logger.debug(
+                    "Round %d mates: %s x %s",
+                    round_num, A.strategy_bitstring, B.strategy_bitstring
+                )
                 child1, child2 = A.crossover(B)
-                # Add to database
-                c.execute("INSERT INTO players VALUES ('{}', '{}', '{}', '{}', '{}')".format(
-                    "N/A", child1.size, child1.strategy_bitstring, child1.id, "False"))
-                c.execute("INSERT INTO players VALUES ('{}', '{}', '{}', '{}', '{}')".format(
-                    "N/A", child2.size, child2.strategy_bitstring, child2.id, "False"))
-                conn.commit()
-                for i in child1.strategy_bitstring:
-                    self.genetic_instance[i] += 1
-                    self.totalgenetic += 1
-                for i in child2.strategy_bitstring:
-                    self.genetic_instance[i] += 1
-                    self.totalgenetic += 1
-                child1node = tree.TreeNode(child1, child1.id)
-                child2node = tree.TreeNode(child2, child2.id)
-                self.tree_hashmap[child1] = child1node
-                self.tree_hashmap[child2] = child2node
-                ANode = self.tree_hashmap[A]
-                BNode = self.tree_hashmap[B]
-                ANode.left = child1node
-                ANode.right = child2node
-                BNode.left = child1node
-                BNode.right = child2node
-                self.players.append(child1)
-                self.players.append(child2)
+
+                for child in (child1, child2):
+                    c.execute(
+                        "INSERT INTO players VALUES (?, ?, ?, ?, ?)",
+                        ("N/A", child.size, child.strategy_bitstring, child.id, "False")
+                    )
+                    for gene in child.strategy_bitstring:
+                        self.genetic_instance[gene] = \
+                            self.genetic_instance.get(gene, 0) + 1
+                        self.totalgenetic += 1
+                    child_node = tree.TreeNode(child, child.id)
+                    self.tree_hashmap[child] = child_node
+                self.conn.commit()
+
+                child1node = self.tree_hashmap[child1]
+                child2node = self.tree_hashmap[child2]
+                for parent in (A, B):
+                    pnode = self.tree_hashmap[parent]
+                    pnode.left = child1node
+                    pnode.right = child2node
+
+                self.players.extend([child1, child2])
                 self.game_hashmap[child1] = 0
                 self.game_hashmap[child2] = 0
-            for i in self.game_hashmap:
-                print(i.strategy_bitstring, self.game_hashmap[i])
+
+            for player, score in self.game_hashmap.items():
+                logger.debug("%s: %d", player.strategy_bitstring, score)
+
             self.print_players()
-        conn.close()
+
         self.plot_percentage_count()
 
     def print_players(self):
         for player in self.players:
-            print(player.id, player.strategy_bitstring)
+            logger.info("%s  %s", player.id, player.strategy_bitstring)
 
     def traverse_players(self):
         for player in self.players:
-            print("New Traversal")
-            print("----------------")
+            logger.info("--- Traversal ---")
             self.tree_hashmap[player].inorder()
 
-    def process_percentage(self):
-        for i in self.genetic_instance:
-            percentage = float(self.genetic_instance[i]) / self.totalgenetic
-            if i not in self.geneticpercentage:
-                self.geneticpercentage[i] = [percentage]
-            else:
-                self.geneticpercentage[i].append(percentage)
-            print(str(i) + ": " + str(percentage))
+    def _process_percentage(self):
+        for gene, count in self.genetic_instance.items():
+            pct = count / self.totalgenetic if self.totalgenetic else 0
+            self.geneticpercentage.setdefault(gene, []).append(pct)
+            logger.debug("%s: %.4f%%", gene, pct)
 
-    def process_count(self):
-        for i in self.genetic_instance:
-            count = self.genetic_instance[i]
-            if i not in self.geneticcount:
-                self.geneticcount[i] = [count]
-            else:
-                self.geneticcount[i].append(count)
-            print(str(i) + ": " + str(count))
-
-    def generate_percentage_plot(self):
-        time = list(range(0, self.totalrounds))
-        for i in self.geneticpercentage:
-            print(self.geneticpercentage[i])
-            with plt.style.context('seaborn-darkgrid'):
-                plt.plot(
-                    time, self.geneticpercentage[i], '-o', label=self.reverse_lookup[i])
-
-        plt.xlabel("Epoch")
-        plt.ylabel("Percentage of Total Population")
-        plt.suptitle("Percentage of Total Population vs Epoch")
-        plt.legend()
-        plt.show()
-
-    def generate_number_plot(self):
-        time = list(range(0, self.totalrounds))
-        for i in self.geneticcount:
-            print(self.geneticcount[i])
-            with plt.style.context('seaborn-darkgrid'):
-                plt.plot(time, self.geneticcount[i],
-                         '-o', label=self.reverse_lookup[i],)
-        plt.xlabel("Epoch")
-        plt.ylabel("Agents")
-        plt.legend("Agent Population vs Epoch")
-        plt.show()
+    def _process_count(self):
+        for gene, count in self.genetic_instance.items():
+            self.geneticcount.setdefault(gene, []).append(count)
+            logger.debug("%s: %d", gene, count)
 
     def plot_percentage_count(self):
-        with plt.style.context('dark_background'):
-            fig, (ax1, ax2) = plt.subplots(2)
-            fig.suptitle(self.experimenttitle)
-        time = list(range(0, self.totalrounds))
-        for i in self.geneticcount:
-            print(self.geneticcount[i])
-            ax1.plot(time, self.geneticcount[i],
-                     '-o', label=self.reverse_lookup[i],)
+        time = list(range(self.totalrounds))
+        fig, (ax1, ax2) = plt.subplots(2)
+        fig.suptitle(self.experimenttitle)
+
+        for gene, counts in self.geneticcount.items():
+            ax1.plot(time, counts, '-o', label=REVERSE_MAP.get(gene, gene))
         ax1.set(xlabel="Epoch", ylabel="Population")
         ax1.legend()
-        for i in self.geneticpercentage:
-            print(self.geneticpercentage[i])
-            ax2.plot(
-                time, self.geneticpercentage[i], '-o', label=self.reverse_lookup[i])
+
+        for gene, pcts in self.geneticpercentage.items():
+            ax2.plot(time, pcts, '-o', label=REVERSE_MAP.get(gene, gene))
         ax2.set(xlabel="Epoch", ylabel="Population Percentage")
         ax2.legend()
+
+        plt.tight_layout()
         plt.show()
