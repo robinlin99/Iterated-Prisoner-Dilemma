@@ -245,6 +245,10 @@ class Simulation:
             self.conn.commit()
             self.players.extend(new_players)
 
+            logger.info(
+                "Epoch %d/%d complete — population: %d, offspring added: %d",
+                round_num + 1, self.total_rounds, len(self.players), len(new_players)
+            )
             logger.debug("Round %d complete. Population: %d", round_num, len(self.players))
 
         self.plot_percentage_count(plot=plot)
